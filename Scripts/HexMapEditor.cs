@@ -11,11 +11,24 @@ public class HexMapEditor : MonoBehaviour
 
     private Color activeColor;
 
+    bool applyWaterLevel = true;
     bool applyElevation = true;
     bool applyColor = true;
 
-    private int activeElevation;
-    private int brushSize;
+    int activeElevation;
+    int activeWaterLevel;
+    int brushSize;
+
+    bool isDrag;
+    HexDirection dragDirection;
+    HexCell previousCell;
+
+    enum OptionalToggle
+    {
+        Ignore, Yes, No
+    }
+
+    OptionalToggle riverMode, roadMode;
 
     private void Awake()
     {
@@ -24,7 +37,15 @@ public class HexMapEditor : MonoBehaviour
 
     public void SetBrushSize(float bs) { brushSize = (int)bs; }
     public void SetApplyElevation(bool toggle) { applyElevation = toggle; }
+    public void SetApplyWaterLevel(bool toggle)
+    {
+        applyWaterLevel = toggle;
+    }
 
+    public void SetWaterLevel(float level)
+    {
+        activeWaterLevel = (int)level;
+    }
 
     public void SelectColor(int index)
     {
@@ -42,7 +63,17 @@ public class HexMapEditor : MonoBehaviour
 
         if (Physics.Raycast(inputRay, out hit))
         {
-            EditCells(hexGrid.GetCell(hit.point));
+            HexCell currentCell = hexGrid.GetCell(hit.point);
+            if (previousCell && previousCell != currentCell)
+            {
+                ValidateDrag(currentCell);
+            }
+            else
+            {
+                isDrag = false;
+            }
+            EditCells(currentCell);
+            previousCell = currentCell;
         }
     }
 
@@ -75,6 +106,23 @@ public class HexMapEditor : MonoBehaviour
                 cell.Color = activeColor;
             if (applyElevation == true)
                 cell.Elevation = activeElevation;
+            if (applyWaterLevel)
+                cell.WaterLevel = activeWaterLevel;
+            if (riverMode == OptionalToggle.No)
+                cell.RemoveRiver();
+            if (roadMode == OptionalToggle.No)
+                cell.RemoveRoads();
+            if (isDrag)
+            {
+                HexCell otherCell = cell.GetNeighbor(dragDirection.Opposite());
+                if (otherCell)
+                {
+                    if (riverMode == OptionalToggle.Yes)
+                        otherCell.SetOutgoingRiver(dragDirection);
+                    if (roadMode == OptionalToggle.Yes)
+                        otherCell.AddRoad(dragDirection);
+                }
+            }
         }
     }
 
@@ -82,13 +130,34 @@ public class HexMapEditor : MonoBehaviour
     void Update()
     {
         if (Input.GetMouseButton(0) && !EventSystem.current.IsPointerOverGameObject())
-        {
             HandleInput();
-        }
+        else
+            previousCell = null;
     }
 
     public void ShowUI(bool visible)
     {
         hexGrid.ShowUI(visible);
+    }
+
+    public void SetRiverMode(int mode) { riverMode = (OptionalToggle)mode; }
+
+    public void SetRoadMode(int mode) { roadMode = (OptionalToggle)mode; }
+
+    void ValidateDrag(HexCell currentCell)
+    {
+        for (
+            dragDirection = HexDirection.NE;
+            dragDirection <= HexDirection.NW;
+            dragDirection++
+        )
+        {
+            if (previousCell.GetNeighbor(dragDirection) == currentCell)
+            {
+                isDrag = true;
+                return;
+            }
+        }
+        isDrag = false;
     }
 }

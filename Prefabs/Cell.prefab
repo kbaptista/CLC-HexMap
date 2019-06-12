@@ -43,3 +43,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9eee580b1120cac49a14b93fa4fdaa66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  coordinates:
+    x: 0
+    z: 0
+  uiRect: {fileID: 0}
+  chunk: {fileID: 0}
+  roads: 000000000000
+  neighbors: []
